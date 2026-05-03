@@ -54,8 +54,7 @@ python main.py
 | Initial Temp. (Ti) | Initial temperature (°C) | 220 |
 | Ambient Temp. (T_inf) | Ambient temperature (°C) | 25 |
 | Time (sec) | Time for analysis (s) | 900 |
-| Characteristic Length (L or \frac{i}{b}) | Characteristic length (m) | 0.06 |
-| Cylinder Length (L) | Cylinder length (m) | 0.1 |
+| Length (L or ro) | Characteristic length (m) | 0.06 |
 
 ### Supported Geometries
 

@@ -190,14 +190,10 @@ class TransientApp(QMainWindow):
                 if geometry_key == "Plane Wall":
                     # For plane wall, show positions from 0 to total thickness (2*Lc)
                     total_length = 2 * body.Lc
-                elif geometry_key == "Infinite Cylinder":
-                    # For cylinder and sphere, show from 0 to Lc
-                    total_length = 2 * body.Lc
                 else:
-                    # For sphere, show from 0 to Lc (which is r0/3), but we can extend to 3*Lc to show more of the profile
-                    total_length = 3 * body.Lc
+                    total_length = body.Lc
                 
-                num_positions = int(total_length / 0.001) + 1
+                num_positions = int(total_length / 0.01)
                 positions = np.linspace(0, total_length, num_positions)
                 
                 # Calculate temperatures only at the final time (not full time-series)
