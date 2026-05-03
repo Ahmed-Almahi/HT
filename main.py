@@ -78,10 +78,22 @@ class TransientApp(QMainWindow):
             time_vals = np.linspace(0, time_sec, 200)
             center_pos = 0
 
-            temps = [
-                AutoSolver.solve(body, center_pos, t, geometry_key)
-                for t in time_vals
-            ]
+            fixed_method = analysis['method']
+
+            temps = []
+
+            for t in time_vals:
+                if fixed_method == 'analytic':
+                    if geometry_key == 'slab':
+                        temp = solve_one_term_slab(body, center_pos, t)
+                    elif geometry_key == 'cylinder':
+                        temp = solve_one_term_cylinder(body, center_pos, t)
+                    elif geometry_key == 'sphere':
+                        temp = solve_one_term_sphere(body, center_pos, t)
+                else:
+                    temp = AutoSolver.solve(body, center_pos, t, geometry_key)
+
+                temps.append(temp)
 
             # Plot
             self.canvas.axes.clear()
