@@ -76,56 +76,49 @@ class AutoSolver:
     
     @staticmethod
     def solve(body, pos, t, geometry_type):
-        """
-        Automatically solve for temperature at given position and time.
-        
-        Args:
-            body: Physics object (PlaneWall, InfiniteCylinder, Sphere)
-            pos: Position to evaluate
-            t: Time
-            geometry_type: 'slab', 'cylinder', or 'sphere'
-        
-        Returns:
-            float: Temperature at (pos, t)
-        """
+
         if t <= 0:
             return body.Ti
-        
+
+        Fo = body.get_fourier(t)
+        Bi = body.get_biot()
+
+        # 🔥 1. زمن صغير → استخدم Lumped ALWAYS
+        if Fo < 0.2:
+            tau = body.get_time_constant()
+            return body.T_inf + (body.Ti - body.T_inf) * np.exp(-t / tau)
+
+        # 🔥 2. بعد كده نقرر
         analysis = AutoSolver.get_analysis_info(body, t)
         method = analysis['method']
-        
+
         try:
             if method == 'analytic':
-                # Use one-term approximation (valid for both lumped and non-lumped)
                 if geometry_type == 'slab':
                     return solve_one_term_slab(body, pos, t)
                 elif geometry_type == 'cylinder':
                     return solve_one_term_cylinder(body, pos, t)
                 elif geometry_type == 'sphere':
                     return solve_one_term_sphere(body, pos, t)
+
             else:
                 dt = min(t / 100, 0.1)
                 dt = max(dt, 0.001)
 
-                result = None  # ← مهم جداً
-
                 if geometry_type == 'slab':
                     result = solve_implicit_fdm_slab(body, nodes=100, dt=dt, total_time=t)
-
                 elif geometry_type == 'cylinder':
                     result = solve_implicit_fdm_cylinder(body, nodes=50, dt=dt, total_time=t)
-
                 elif geometry_type == 'sphere':
                     result = solve_implicit_fdm_sphere(body, nodes=50, dt=dt, total_time=t)
-
-                # 🔥 حماية من الخطأ
-                if result is None:
+                else:
                     raise ValueError(f"Unknown geometry_type: {geometry_type}")
 
                 node_idx = int((pos / body.Lc) * (len(result) - 1))
                 node_idx = min(max(node_idx, 0), len(result) - 1)
 
                 return result[node_idx]
+
         except Exception as e:
             print(f"Warning: Solver failed with {method}: {e}")
             return body.T_inf

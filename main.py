@@ -75,7 +75,7 @@ class TransientApp(QMainWindow):
             analysis = AutoSolver.get_analysis_info(body,time_sec)
 
             # Time array
-            time_vals = np.linspace(0, time_sec, 200)
+            time_vals = np.linspace(0.01 * time_sec, time_sec, 100)
             center_pos = 0
 
             fixed_method = analysis['method']
@@ -120,7 +120,8 @@ class TransientApp(QMainWindow):
             info_text = (
                 f"Bi={analysis['biot']:.4f} ({analysis['system_type']}) | "
                 f"Fo={analysis['fourier']:.4f} | "
-                f"T(t={time_sec:.0f}s) = {T_end:.1f} °C"
+                f"T(t={time_sec:.0f}s) = {T_end:.1f} °C | "
+                f"Method: {analysis['method'].upper()}"
             )
             self.controls.info_label.setText(info_text)
 

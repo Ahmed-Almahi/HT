@@ -36,9 +36,6 @@ def solve_one_term_cylinder(cyl_obj, r, t):
 
     theta = A1 * exp_term * j0(lambda1 * (r / cyl_obj.Lc))
 
-    # حماية فقط (بدون قطع الزمن)
-    theta = max(0.0, min(theta, 1.0))
-
     return cyl_obj.T_inf + theta * (cyl_obj.Ti - cyl_obj.T_inf)
 
 def solve_one_term_sphere(sphere_obj, r, t):

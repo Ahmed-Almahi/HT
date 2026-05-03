@@ -11,4 +11,4 @@ class PlaneWall(BaseHeatCase):
 
     @property
     def Lc(self):
-        return self.L / 2
+        return self.L
