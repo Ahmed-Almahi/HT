@@ -10,7 +10,7 @@ def solve_implicit_fdm_slab(obj, nodes, dt, total_time):
     if total_time <= 0:
         return np.full(nodes, obj.Ti, dtype=float)
 
-    L = obj.Lc
+    L = obj.Lc * 2
     dx = L / (nodes - 1)
     Fo = obj.alpha * dt / dx**2
     # Implicit is unconditionally stable, but keep Fo not huge for accuracy
@@ -60,7 +60,7 @@ def solve_implicit_fdm_cylinder(obj, nodes, dt, total_time):
     if total_time <= 0:
         return np.full(nodes, obj.Ti, dtype=float)
 
-    R = obj.Lc
+    R = obj.Lc * 2
     dr = R / (nodes - 1)
     Fo = obj.alpha * dt / dr**2
     Fo = min(Fo, 10.0)   # implicit stable, but keep reasonable
@@ -108,7 +108,7 @@ def solve_implicit_fdm_sphere(obj, nodes, dt, total_time):
     if total_time <= 0:
         return np.full(nodes, obj.Ti, dtype=float)
 
-    R = obj.Lc
+    R = obj.Lc * 3
     dr = R / (nodes - 1)
     Fo = obj.alpha * dt / dr**2
     Fo = min(Fo, 10.0)   # implicit stable
@@ -144,12 +144,3 @@ def solve_implicit_fdm_sphere(obj, nodes, dt, total_time):
         T = solve_banded((1, 1), A, B)
         T[0] = T[1]
     return T
-
-
-def solve_implicit_fdm_semi_sphere(obj, nodes, dt, total_time):
-    """
-    Semi-sphere (dome) with insulated base. 
-    Identical to full sphere because the base is adiabatic and the problem is spherically symmetric.
-    Provided for convenience; simply calls solve_implicit_fdm_sphere.
-    """
-    return solve_implicit_fdm_sphere(obj, nodes, dt, total_time)

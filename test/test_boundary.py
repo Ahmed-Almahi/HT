@@ -1,7 +1,6 @@
 import numpy as np
 from src.physics.slab import PlaneWall
 
-# Exact parameters from screenshot
 A = 0.02
 V = 8e-4
 k = 110

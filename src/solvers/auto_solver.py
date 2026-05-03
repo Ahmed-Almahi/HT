@@ -1,19 +1,3 @@
-"""
-Auto-solver module that automatically determines the best solving method
-based on Fourier and Biot numbers.
-
-Decision Logic:
-- Calculate Biot number (Bi = h*Lc/k)
-- If Bi < 0.1: Use LUMPED system
-    - Calculate Fourier based on time constant
-    - If Fo < 0.2: Use Analytic (One-term approximation)
-    - If Fo >= 0.2: Use Numeric (Implicit Scheme)
-- If Bi >= 0.1: Use NON-LUMPED system
-    - Calculate Fourier based on spatial dimension
-    - If Fo < 0.2: Use Analytic (One-term approximation)
-    - If Fo >= 0.2: Use Numeric (Implicit Scheme)
-"""
-
 from unittest import result
 
 import numpy as np
@@ -30,12 +14,12 @@ class AutoSolver:
     @staticmethod
     def get_analysis_info(body, t):
         """
-        Get analysis info including Biot, Fourier numbers and method selection.
+        Get analysis info including Biot, Fourier numbers and method selection (analytic or numerical) you will know ali :).
         
         Returns:
             dict: {
                 'biot': Biot number,
-                'fourier': Fourier number,
+                'fourier': Fourier number, (the reference say tau or Fo)
                 'is_lumped': Boolean (True if Bi < 0.1),
                 'use_analytic': Boolean (True if should use analytic),
                 'method': 'analytic' or 'numerical',
@@ -80,48 +64,39 @@ class AutoSolver:
         if t <= 0:
             return body.Ti
 
-        Fo = body.get_fourier(t)
         Bi = body.get_biot()
+        Fo = body.get_fourier(t)
 
-        # 🔥 1. زمن صغير → استخدم Lumped ALWAYS
-        if Fo < 0.2:
+        # Lumped ONLY if Bi < 0.1
+        if Bi < 0.1:
             tau = body.get_time_constant()
             return body.T_inf + (body.Ti - body.T_inf) * np.exp(-t / tau)
 
-        # 🔥 2. بعد كده نقرر
-        analysis = AutoSolver.get_analysis_info(body, t)
-        method = analysis['method']
+        # Non-lumped
+        if Fo >= 0.2:
+            # analytic (one-term)
+            if geometry_type == 'slab':
+                return solve_one_term_slab(body, pos, t)
+            elif geometry_type == 'cylinder':
+                return solve_one_term_cylinder(body, pos, t)
+            elif geometry_type == 'sphere':
+                return solve_one_term_sphere(body, pos, t)
+        else:
+            # numerical
+            dt = min(t / 100, 0.1)
+            dt = max(dt, 0.001)
 
-        try:
-            if method == 'analytic':
-                if geometry_type == 'slab':
-                    return solve_one_term_slab(body, pos, t)
-                elif geometry_type == 'cylinder':
-                    return solve_one_term_cylinder(body, pos, t)
-                elif geometry_type == 'sphere':
-                    return solve_one_term_sphere(body, pos, t)
+            if geometry_type == 'slab':
+                result = solve_implicit_fdm_slab(body, nodes=100, dt=dt, total_time=t)
+            elif geometry_type == 'cylinder':
+                result = solve_implicit_fdm_cylinder(body, nodes=50, dt=dt, total_time=t)
+            elif geometry_type == 'sphere':
+                result = solve_implicit_fdm_sphere(body, nodes=50, dt=dt, total_time=t)
 
-            else:
-                dt = min(t / 100, 0.1)
-                dt = max(dt, 0.001)
+            node_idx = int((pos / body.Lc) * (len(result) - 1))
+            node_idx = min(max(node_idx, 0), len(result) - 1)
 
-                if geometry_type == 'slab':
-                    result = solve_implicit_fdm_slab(body, nodes=100, dt=dt, total_time=t)
-                elif geometry_type == 'cylinder':
-                    result = solve_implicit_fdm_cylinder(body, nodes=50, dt=dt, total_time=t)
-                elif geometry_type == 'sphere':
-                    result = solve_implicit_fdm_sphere(body, nodes=50, dt=dt, total_time=t)
-                else:
-                    raise ValueError(f"Unknown geometry_type: {geometry_type}")
-
-                node_idx = int((pos / body.Lc) * (len(result) - 1))
-                node_idx = min(max(node_idx, 0), len(result) - 1)
-
-                return result[node_idx]
-
-        except Exception as e:
-            print(f"Warning: Solver failed with {method}: {e}")
-            return body.T_inf
+            return result[node_idx]
     
     @staticmethod
     def solve_time_series(body, positions, times, geometry_type):
@@ -132,7 +107,7 @@ class AutoSolver:
             body: Physics object
             positions: Array of positions
             times: Array of times
-            geometry_type: 'slab', 'cylinder', or 'sphere'
+            geometry_type: 'slab', 'cylinder', or 'sphere' (you can add more if needed)
         
         Returns:
             dict: {

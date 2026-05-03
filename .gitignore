@@ -18,4 +18,3 @@ Thumbs.db
 dist/
 build/
 *.spec
-test/

@@ -62,8 +62,6 @@ python main.py
 1. **Plane Wall**: Infinite slab with heat conduction through thickness
 2. **Infinite Cylinder**: Long cylinder with radial heat flow
 3. **Sphere**: Solid sphere with radial heat flow
-4. **Semi-Sphere**: Half-sphere geometry
-5. **Sphere + Cylinder**: Combined geometry
 
 ### Export Results
 
@@ -84,10 +82,9 @@ Click "Export to Excel" after calculating to save results as an Excel file (.xls
     │   ├── slab.py        # Plane wall geometry
     │   ├── cylinder.py    # Cylinder geometry
     │   ├── sphere.py      # Sphere geometry
-    │   ├── semi_sphere.py # Semi-sphere geometry
-    │   └── sphere_cylinder.py # Combined geometry
     ├── solvers/           # Numerical and analytical solvers
     │   ├── analytic.py   # Analytical solutions
+    │   ├── auto_solver.py   # Switch between analytical and numerical soultions
     │   └── numerical.py   # Numerical solutions
     └── ui/                # User interface components
         ├── widgets.py     # GUI widgets

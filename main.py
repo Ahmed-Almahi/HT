@@ -16,8 +16,8 @@ class TransientApp(QMainWindow):
     def __init__(self):
         super().__init__() 
         
-        self.setWindowTitle("Transient Heat Conduction - Tanta University")
-        self.setMinimumSize(1100, 650)
+        self.setWindowTitle("Transient Heat Conduction - Tanta University علي وشركائه")
+        self.setMinimumSize(1400, 750)
         
         self.controls = ControlPanel()
         self.canvas = MplCanvas()
@@ -26,6 +26,8 @@ class TransientApp(QMainWindow):
         layout = QHBoxLayout()
         layout.addWidget(self.controls, 1)
         layout.addWidget(self.canvas, 3)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
         main_widget.setLayout(layout)
         self.setCentralWidget(main_widget)
         
@@ -41,8 +43,14 @@ class TransientApp(QMainWindow):
 
     def update_plot(self):
         try:
-            d = {k: float(v.text()) for k, v in self.controls.inputs.items()}
-            L_char = d['Characteristic Length (L or r0)']
+            d = {k: float(v.text()) if v.text().strip() else None 
+                 for k, v in self.controls.inputs.items()}
+            
+            # Handle optional Volume and Surface Area
+            vol_opt = d.get('Volume (V) [Optional]')
+            area_opt = d.get('Surface Area (A) [Optional]')
+            
+            Length = d['Length (L or r0)']
             time_sec = d['Time (sec)']
             geo_type = self.controls.geo_combo.currentText()
 
@@ -52,21 +60,42 @@ class TransientApp(QMainWindow):
                 body = PlaneWall(d['Thermal Cond (k)'], d['Density (rho)'], 
                                 d['Specific Heat (cp)'], d['Conv Coeff (h)'], 
                                 d['Initial Temp (Ti)'], d['Ambient Temp (T_inf)'], 
-                                L=L_char)
+                                L=Length)
+                # Override volume and area if provided
+                if vol_opt is not None:
+                    body.v = vol_opt
+                if area_opt is not None:
+                    body.As = area_opt
+                    # Recalculate time constant with new area
+                    body.time_constant = (body.rho * body.v * body.cp) / (body.h * body.As)
 
             elif geo_type == "Infinite Cylinder":
                 geometry_key = 'cylinder'
                 body = InfiniteCylinder(d['Thermal Cond (k)'], d['Density (rho)'], 
                                     d['Specific Heat (cp)'], d['Conv Coeff (h)'], 
                                     d['Initial Temp (Ti)'], d['Ambient Temp (T_inf)'], 
-                                    r0=L_char)
+                                    r0=Length)
+                # Override volume and area if provided
+                if vol_opt is not None:
+                    body.v = vol_opt
+                if area_opt is not None:
+                    body.As = area_opt
+                    # Recalculate time constant with new area
+                    body.time_constant = (body.rho * body.v * body.cp) / (body.h * body.As)
 
             elif geo_type == "Sphere":
                 geometry_key = 'sphere'
                 body = Sphere(d['Thermal Cond (k)'], d['Density (rho)'], 
                             d['Specific Heat (cp)'], d['Conv Coeff (h)'], 
                             d['Initial Temp (Ti)'], d['Ambient Temp (T_inf)'], 
-                            r0=L_char)
+                            r0=Length)
+                # Override volume and area if provided
+                if vol_opt is not None:
+                    body.v = vol_opt
+                if area_opt is not None:
+                    body.As = area_opt
+                    # Recalculate time constant with new area
+                    body.time_constant = (body.rho * body.v * body.cp) / (body.h * body.As)
 
             else:
                 raise ValueError("Unknown geometry type")
@@ -103,8 +132,7 @@ class TransientApp(QMainWindow):
             self.canvas.axes.plot(
                 time_vals, temps,
                 color='#00ff00', marker='o',
-                linewidth=2, markersize=3,
-                label=f"Position = {center_pos:.4f} m"
+                linewidth=2, markersize=3
             )
 
             self.canvas.axes.set_title(f"Temperature vs Time: {geo_type}", color='white')
@@ -162,21 +190,25 @@ class TransientApp(QMainWindow):
                 if geometry_key == "Plane Wall":
                     # For plane wall, show positions from 0 to total thickness (2*Lc)
                     total_length = 2 * body.Lc
-                else:
+                elif geometry_key == "Infinite Cylinder":
                     # For cylinder and sphere, show from 0 to Lc
-                    total_length = body.Lc
+                    total_length = 2 * body.Lc
+                else:
+                    # For sphere, show from 0 to Lc (which is r0/3), but we can extend to 3*Lc to show more of the profile
+                    total_length = 3 * body.Lc
                 
                 num_positions = int(total_length / 0.001) + 1
                 positions = np.linspace(0, total_length, num_positions)
                 
                 # Calculate temperatures only at the final time (not full time-series)
+                # Position is now the LAST column
                 data = []
                 for pos in positions:
                     temp = AutoSolver.solve(body, pos, final_time, geometry_key)
                     data.append({
-                        'Time (s)': final_time,  # Add time column as requested
-                        'Position (m)': round(pos, 6),
-                        'Temperature (°C)': round(temp, 4)
+                        'Time (s)': final_time,
+                        'Temperature (°C)': round(temp, 4),
+                        'Position (m)': round(pos, 6)
                     })
                 
                 df_data = pd.DataFrame(data)
