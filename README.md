@@ -1,14 +1,14 @@
 # Transient Heat Conduction Simulator
 
-A Python-based desktop application for analyzing transient heat conduction in various geometries. Developed for the heat transfer course at Tanta University.
+A Python desktop application for transient heat conduction analysis in plane walls, infinite cylinders, and spheres. Built as an educational tool for heat transfer coursework at Tanta University.
 
 ## Features
 
-- **Multiple Geometries**: Support for Plane Wall, Infinite Cylinder, Sphere, Semi-Sphere, and Sphere+Cylinder configurations
-- **Analytical Solutions**: Accurate temperature distribution calculations using series solutions
-- **Interactive GUI**: User-friendly PyQt5 interface with real-time visualization
-- **Excel Export**: Export results to Excel format for further analysis
-- **Dynamic Updates**: Delayed update mechanism for smooth user experience
+- **Three geometries**: Plane Wall, Infinite Cylinder, Sphere
+- **Automatic solver selection**: uses lumped-capacitance, analytic one-term, or implicit finite-difference methods depending on Biot and Fourier numbers
+- **Interactive PyQt5 GUI**: enter parameters, plot temperature response, and view analysis info instantly
+- **Excel export**: save temperature results and metadata to `.xlsx`
+- **Optional geometry overrides**: specify custom volume or surface area for advanced cases
 
 ## Requirements
 
@@ -22,7 +22,7 @@ A Python-based desktop application for analyzing transient heat conduction in va
 
 ## Installation
 
-1. Create a virtual environment (recommended):
+1. Create a virtual environment:
 ```bash
 python -m venv .venv
 ```
@@ -38,66 +38,81 @@ pip install -r requirements.txt
 
 ## Usage
 
-Run the application:
+Start the application:
 ```bash
 python main.py
 ```
 
+Enter the required physical properties and analysis settings, then click **Calculate and Plot**.
+
 ### Input Parameters
 
-| Parameter | Description | Default Value |
-|-----------|-------------|---------------|
-| Thermal Cond (k) | Thermal conductivity (W/m·K) | 110 |
-| Density (rho) | Density (kg/m³) | 8530 |
-| Specific Heat (cp) | Specific heat capacity (J/kg·K) | 380 |
-| Conv. Coeff. (h) | Convection coefficient (W/m²·K) | 60 |
-| Initial Temp. (Ti) | Initial temperature (°C) | 220 |
-| Ambient Temp. (T_inf) | Ambient temperature (°C) | 25 |
-| Time (sec) | Time for analysis (s) | 900 |
-| Length (L or ro) | Characteristic length (m) | 0.06 |
+| Parameter | Description |
+|-----------|-------------|
+| Thermal Cond (k) | Thermal conductivity (W/m·K) |
+| Density (rho) | Density (kg/m³) |
+| Specific Heat (cp) | Specific heat capacity (J/kg·K) |
+| Conv Coeff (h) | Convection coefficient (W/m²·K) |
+| Initial Temp (Ti) | Initial temperature (°C) |
+| Ambient Temp (T_inf) | Ambient temperature (°C) |
+| Time (sec) | Analysis time in seconds |
+| Length (L or r0) | Half-thickness / radius (m) |
+| Volume (V) [Optional] | Optional body volume override |
+| Surface Area (A) [Optional] | Optional surface area override |
 
 ### Supported Geometries
 
-1. **Plane Wall**: Infinite slab with heat conduction through thickness
-2. **Infinite Cylinder**: Long cylinder with radial heat flow
-3. **Sphere**: Solid sphere with radial heat flow
+1. **Plane Wall** — infinite slab with conduction through thickness
+2. **Infinite Cylinder** — long cylinder with radial heat flow
+3. **Sphere** — solid sphere with radial heat flow
+
+### Solver Logic
+
+The app evaluates dimensionless numbers and chooses the appropriate method:
+
+- **Lumped-capacitance model** for Biot number `Bi < 0.1`
+- **Analytic one-term solution** for non-lumped cases with `Fo >= 0.2`
+- **Implicit finite-difference numerical solver** for non-lumped cases with lower Fourier numbers
 
 ### Export Results
 
-Click "Export to Excel" after calculating to save results as an Excel file (.xlsx) containing:
-- Temperature Data sheet: Position and Temperature values
-- Metadata sheet: Geometry type and Time parameters
+Use **Export to Excel (Time Series)** after a calculation to save results in an Excel workbook with:
+
+- `Temperature Data`: temperature at 0.001 m intervals for half and full analysis times
+- `Metadata`: geometry, material properties, dimensionless numbers, solver method, and time constant
 
 ## Project Structure
 
 ```
 .
-├── main.py                 # Main application entry point
+├── main.py                 # Application entry point
 ├── requirements.txt        # Python dependencies
-├── README.md              # This file
+├── README.md               # Project documentation
 └── src/
-    ├── physics/           # Physics classes for different geometries
-    │   ├── base_case.py   # Base class for heat transfer
-    │   ├── slab.py        # Plane wall geometry
-    │   ├── cylinder.py    # Cylinder geometry
-    │   ├── sphere.py      # Sphere geometry
-    ├── solvers/           # Numerical and analytical solvers
-    │   ├── analytic.py   # Analytical solutions
-    │   ├── auto_solver.py   # Switch between analytical and numerical soultions
-    │   └── numerical.py   # Numerical solutions
-    └── ui/                # User interface components
-        ├── widgets.py     # GUI widgets
-        └── styles.qss    # Application styles
+    ├── physics/            # Geometry and heat transfer models
+    │   ├── base_case.py    # Abstract heat transfer base class
+    │   ├── slab.py         # Plane wall geometry
+    │   ├── cylinder.py     # Infinite cylinder geometry
+    │   ├── sphere.py       # Sphere geometry
+    ├── solvers/            # Solver implementations
+    │   ├── analytic.py     # Analytic solution formulas
+    │   ├── auto_solver.py  # Auto-selection logic
+    │   └── numerical.py   # Implicit finite-difference solvers
+    └── ui/                 # GUI components
+        ├── widgets.py      # Application widgets and controls
+        └── styles.qss      # Qt stylesheet
 ```
 
 ## Theory
 
-The application solves the transient heat conduction equation using separation of variables and Fourier series solutions. The temperature distribution T(x,t) is calculated based on:
+The application computes transient conduction using:
 
-- Thermal diffusivity: α = k/(ρ·cp)
-- Biot number: Bi = h·L/k
-- Fourier number: Fo = α·t/L²
+- Thermal diffusivity: `α = k / (ρ · cp)`
+- Biot number: `Bi = h · Lc / k`
+- Fourier number: `Fo = α · t / Lc²`
+
+It supports both spatially distributed solutions and lumped-capacitance behavior depending on the case.
 
 ## License
 
-This project is developed for educational purposes at Tanta University.
+Developed for educational purposes at Tanta University.
