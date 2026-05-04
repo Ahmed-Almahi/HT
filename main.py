@@ -140,6 +140,20 @@ class TransientApp(QMainWindow):
             self.canvas.axes.set_ylabel("Temperature [°C]", color='white')
             self.canvas.axes.tick_params(colors='white')
             self.canvas.axes.legend()
+            
+            pos_text = (
+                f"Lc: {body.Lc:.4f} m\n"
+            )
+            self.canvas.axes.text(
+                0.98, 0.98, pos_text,
+                transform=self.canvas.axes.transAxes,
+                fontsize=10,
+                verticalalignment='top',
+                horizontalalignment='right',
+                color='#00ff00',
+                bbox=dict(boxstyle='round', facecolor='#1a1a1a', alpha=0.7, edgecolor='#00ff00')
+            )
+            
             self.canvas.draw()
 
             T_end = AutoSolver.solve(body, 0.0, time_sec, geometry_key)
@@ -148,8 +162,7 @@ class TransientApp(QMainWindow):
             info_text = (
                 f"Bi={analysis['biot']:.4f} ({analysis['system_type']}) | "
                 f"Fo={analysis['fourier']:.4f} | "
-                f"T(t={time_sec:.0f}s) = {T_end:.1f} °C | "
-                f"Method: {analysis['method'].upper()}"
+                f"T(t={time_sec:.0f}s) = {T_end:.1f} °C "
             )
             self.controls.info_label.setText(info_text)
 
@@ -186,26 +199,26 @@ class TransientApp(QMainWindow):
                 geometry_key = results['geometry_key']
                 final_time = results['time_sec']
                 
-                # Generate positions with 0.001m intervals from 0 to full characteristic length
-                if geometry_key == "Plane Wall":
-                    # For plane wall, show positions from 0 to total thickness (2*Lc)
-                    total_length = 2 * body.Lc
-                else:
-                    total_length = body.Lc
-                
-                num_positions = int(total_length / 0.01)
+                # Export positions with 0.001m intervals from 0 to the geometry limit
+                total_length = body.Lc
+                num_positions = int(total_length / 0.001) + 1
                 positions = np.linspace(0, total_length, num_positions)
-                
-                # Calculate temperatures only at the final time (not full time-series)
-                # Position is now the LAST column
+
+                # Use both half-period and end-of-period times
+                half_time = final_time / 2.0
+                times = [half_time, final_time]
+
                 data = []
-                for pos in positions:
-                    temp = AutoSolver.solve(body, pos, final_time, geometry_key)
-                    data.append({
-                        'Time (s)': final_time,
-                        'Temperature (°C)': round(temp, 4),
-                        'Position (m)': round(pos, 6)
-                    })
+                for t in times:
+                    for pos in positions:
+                        temp = AutoSolver.solve(body, pos, t, geometry_key)
+                        data.append({
+                            'Time (s)': round(t, 4),
+                            'Position (m)': round(pos, 6),
+                            'Temperature (°C)': round(temp, 4)
+                        })
+
+                df_data = pd.DataFrame(data)
                 
                 df_data = pd.DataFrame(data)
                 
@@ -258,7 +271,7 @@ class TransientApp(QMainWindow):
                     f"Data exported successfully!\n\n"
                     f"File: {file_path}\n"
                     f"Positions: {len(positions)} (0.001m intervals, 0 to {body.Lc:.3f}m)\n"
-                    f"Time: {final_time}s\n"
+                    f"Times: {half_time:.4f}s and {final_time:.4f}s\n"
                     f"Total rows: {len(data)}")
                 
             except Exception as e:
